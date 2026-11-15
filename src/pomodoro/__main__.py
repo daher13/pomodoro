@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault("GTK_USE_PORTAL", "1")  # use the xdg file chooser portal
+
 from gi.repository import GLib
 
 from .window import PomodoroApp

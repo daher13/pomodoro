@@ -4,9 +4,9 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
-from . import actions
-from .config import LABELS
-from .status import current_status
+from . import actions, config
+from .settings import SettingsDialog
+from .status import current_status, session
 
 BUTTONS = (
     ("Start/Pause", actions.toggle),
@@ -22,15 +22,25 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.connect("key-press-event", self.on_key_press)
         self.connect("destroy", lambda _: actions.apply(actions.pause))
 
-        actions.apply(actions.sync_config)
         self.build_ui()
         self.refresh()
         GLib.timeout_add_seconds(1, self.on_tick)
         self.show_all()
 
     def build_ui(self):
+        overlay = Gtk.Overlay()
+        self.add(overlay)
+
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin=15)
-        self.add(box)
+        overlay.add(box)
+
+        settings = Gtk.Button.new_from_icon_name("preferences-system-symbolic", Gtk.IconSize.BUTTON)
+        settings.set_relief(Gtk.ReliefStyle.NONE)
+        settings.set_tooltip_text("Settings")
+        settings.set_halign(Gtk.Align.END)
+        settings.set_valign(Gtk.Align.START)
+        settings.connect("clicked", self.on_settings)
+        overlay.add_overlay(settings)
 
         self.phase_label = Gtk.Label()
         self.time_label = Gtk.Label()
@@ -46,19 +56,19 @@ class PomodoroWindow(Gtk.ApplicationWindow):
             button.connect("clicked", self.on_click, action)
             row.pack_start(button, False, False, 0)
 
-        self.auto_check = Gtk.CheckButton(label="Auto start next phase", halign=Gtk.Align.CENTER)
-        self.auto_check.connect("toggled", self.on_auto_toggled)
-        box.pack_start(self.auto_check, False, False, 0)
+        # self.auto_check = Gtk.CheckButton(label="Auto start next phase (only for current session)", halign=Gtk.Align.CENTER)
+        # self.auto_check.set_active(session["auto_start"])
+        # self.auto_check.connect("toggled", self.on_auto_toggled)
+        # box.pack_start(self.auto_check, False, False, 0)
 
     def refresh(self):
         # The UI always mirrors the saved state
         status = current_status()
         minutes, seconds = divmod(status["left"], 60)
         state_text = "Running" if status["running"] else "Paused"
-        self.phase_label.set_markup(f'<span size="large" weight="bold">{LABELS[status["phase"]]}</span>')
+        self.phase_label.set_markup(f'<span size="large" weight="bold">{config.LABELS[status["phase"]]}</span>')
         self.time_label.set_markup(f'<span font="monospace 40">{minutes:02d}:{seconds:02d}</span>')
         self.info_label.set_text(f'{state_text} | Completed: {status["done"]}')
-        self.auto_check.set_active(status["auto"])
 
     def confirm(self, text):
         dialog = Gtk.MessageDialog(
@@ -78,8 +88,19 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         actions.apply(action)
         self.refresh()
 
+    def on_settings(self, _):
+        dialog = SettingsDialog(self)
+        if dialog.run() == Gtk.ResponseType.OK:
+            old_durations = dict(config.DURATIONS)
+            config.save_config(dialog.values())
+            actions.apply(actions.apply_durations, old_durations)
+            session["auto_start"] = config.AUTO_START
+            # self.auto_check.set_active(config.AUTO_START)
+            self.refresh()
+        dialog.destroy()
+
     def on_auto_toggled(self, check):
-        actions.apply(actions.set_auto, check.get_active())
+        session["auto_start"] = check.get_active()
 
     def on_key_press(self, _, event):
         if event.keyval == Gdk.KEY_Escape:

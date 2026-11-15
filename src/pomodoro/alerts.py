@@ -1,6 +1,6 @@
 import subprocess
 
-from .config import SOUND_FILE
+from . import config
 
 BEEP_SCRIPT = 'for i in $(seq "$1"); do paplay "$2"; done'
 
@@ -11,7 +11,7 @@ def _spawn(cmd):
         pass  # optional tool not installed
 
 def beep(count):
-    _spawn(["sh", "-c", BEEP_SCRIPT, "sh", str(count), SOUND_FILE])
+    _spawn(["sh", "-c", BEEP_SCRIPT, "sh", str(count), config.SOUND_FILE])
 
 def notify(message):
     _spawn(["notify-send", "Pomodoro", message])

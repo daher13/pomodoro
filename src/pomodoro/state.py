@@ -2,24 +2,24 @@ import json
 import os
 import time
 
-from .config import AUTO_START, CYCLES_BEFORE_LONG_BREAK, DURATIONS, STATE_FILE
+from . import config
 
 def new_state():
-    return {"phase": "work", "running": False, "left": DURATIONS["work"],
-            "end": 0, "done": 0, "auto": AUTO_START}
+    return {"phase": "work", "running": False, "left": config.DURATIONS["work"],
+            "end": 0, "done": 0}
 
 def load_state():
     try:
-        return {**new_state(), **json.loads(STATE_FILE.read_text())}
+        return {**new_state(), **json.loads(config.STATE_FILE.read_text())}
     except (OSError, ValueError):
         return new_state()
 
 def save_state(state):
     # Write atomically so a reader never sees a partial file
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = STATE_FILE.with_suffix(".tmp")
+    config.STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = config.STATE_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(state))
-    os.replace(tmp, STATE_FILE)
+    os.replace(tmp, config.STATE_FILE)
 
 def remaining(state):
     if state["running"]:
@@ -32,8 +32,8 @@ def start(state):
 def advance(state):
     if state["phase"] == "work":
         state["done"] += 1
-        long_break = state["done"] % CYCLES_BEFORE_LONG_BREAK == 0
+        long_break = state["done"] % config.CYCLES_BEFORE_LONG_BREAK == 0
         state["phase"] = "long" if long_break else "short"
     else:
         state["phase"] = "work"
-    state.update(running=False, left=DURATIONS[state["phase"]])
+    state.update(running=False, left=config.DURATIONS[state["phase"]])
