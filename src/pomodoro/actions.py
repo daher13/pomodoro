@@ -1,6 +1,7 @@
 from . import config
 from .state import advance, load_state, new_state, remaining, save_state, start
 
+# Every action receives the loaded state and mutates it; apply() loads and saves around it.
 def apply(action, *args):
     state = load_state()
     action(state, *args)
@@ -16,8 +17,7 @@ def toggle(state):
     else:
         start(state)
 
-def skip(state):
-    advance(state)
+skip = advance
 
 def reset(state):
     # Reset only the current phase timer; keep the completed count

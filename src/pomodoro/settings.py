@@ -66,26 +66,21 @@ class SettingsDialog(Gtk.Dialog):
     def build_form(self):
         self.add_heading("Durations (minutes)")
         for phase, seconds in config.DURATIONS.items():
-            spin = Gtk.SpinButton.new_with_range(1, 240, 1)
-            spin.set_value(round(seconds / 60))
-            self.add_field(config.LABELS[phase], spin, "durations", phase, _number)
+            self.add_spin(config.LABELS[phase], "durations", phase, round(seconds / 60), 1, 240)
 
         self.add_heading("Timer")
-        cycles = Gtk.SpinButton.new_with_range(1, 12, 1)
-        cycles.set_value(config.CYCLES_BEFORE_LONG_BREAK)
-        self.add_field("Focus sessions before long break", cycles, "timer", "cycles", _number)
+        self.add_spin("Focus sessions before long break", "timer", "cycles",
+                      config.CYCLES_BEFORE_LONG_BREAK, 1, 12)
         auto = Gtk.CheckButton(active=config.AUTO_START)
         self.add_field("Auto start next phase", auto, "timer", "auto_start", _checked)
 
         self.add_heading("Beeps per phase")
         for phase, count in config.BEEPS.items():
-            spin = Gtk.SpinButton.new_with_range(0, 10, 1)
-            spin.set_value(count)
-            self.add_field(config.LABELS[phase], spin, "beeps", phase, _number)
+            self.add_spin(config.LABELS[phase], "beeps", phase, count, 0, 10)
 
-        self.add_heading("Labels")
-        for phase, text in config.LABELS.items():
-            self.add_field(phase.capitalize(), Gtk.Entry(text=text), "labels", phase, _text)
+        # self.add_heading("Labels")
+        # for phase, text in config.LABELS.items():
+        #     self.add_field(phase.capitalize(), Gtk.Entry(text=text), "labels", phase, _text)
 
         self.add_heading("Files")
         sound = FileField(self, config.SOUND_FILE, Gtk.FileChooserAction.OPEN, "Select sound")
@@ -93,15 +88,16 @@ class SettingsDialog(Gtk.Dialog):
         state = FileField(self, str(config.STATE_FILE), Gtk.FileChooserAction.SAVE, "Select state file")
         self.add_field("State", state, "state", "file", _text)
 
-        note = Gtk.Label(label="Changes apply the next time Pomodoro opens.")
-        note.get_style_context().add_class("dim-label")
-        self.grid.attach(note, 0, self.row, 2, 1)
-
     def add_heading(self, text):
         label = Gtk.Label(halign=Gtk.Align.START, margin_top=6)
         label.set_markup(f"<b>{text}</b>")
         self.grid.attach(label, 0, self.row, 2, 1)
         self.row += 1
+
+    def add_spin(self, text, section, key, value, low, high):
+        spin = Gtk.SpinButton.new_with_range(low, high, 1)
+        spin.set_value(value)
+        self.add_field(text, spin, section, key, _number)
 
     def add_field(self, text, widget, section, key, getter):
         self.grid.attach(Gtk.Label(label=text, halign=Gtk.Align.START), 0, self.row, 1, 1)

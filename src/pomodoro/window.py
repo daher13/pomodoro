@@ -1,25 +1,20 @@
-import gi
-
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
 from . import actions, config
 from .settings import SettingsDialog
-from .status import current_status, session
+from .status import current_status
 
+# (label, action, confirmation question or None)
 BUTTONS = (
-    ("Start/Pause", actions.toggle),
-    ("Reset", actions.reset),
-    ("Skip", actions.skip),
-    ("Reset All", actions.reset_all),
+    ("Start/Pause", actions.toggle, None),
+    ("Reset", actions.reset, None),
+    ("Skip", actions.skip, None),
+    ("Reset All", actions.reset_all, "Reset everything, including the completed count?"),
 )
 
 class PomodoroWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title="Pomodoro", resizable=False)
-        # self.set_default_size(380, 220)
-        # self.set_default_size(380, 220)
         self.connect("key-press-event", self.on_key_press)
         self.connect("destroy", lambda _: actions.apply(actions.pause))
 
@@ -52,15 +47,10 @@ class PomodoroWindow(Gtk.ApplicationWindow):
 
         row = Gtk.Box(spacing=6, halign=Gtk.Align.CENTER)
         box.pack_start(row, False, False, 0)
-        for label, action in BUTTONS:
+        for label, action, question in BUTTONS:
             button = Gtk.Button(label=label)
-            button.connect("clicked", self.on_click, action)
+            button.connect("clicked", self.on_click, action, question)
             row.pack_start(button, False, False, 0)
-
-        # self.auto_check = Gtk.CheckButton(label="Auto start next phase (only for current session)", halign=Gtk.Align.CENTER)
-        # self.auto_check.set_active(session["auto_start"])
-        # self.auto_check.connect("toggled", self.on_auto_toggled)
-        # box.pack_start(self.auto_check, False, False, 0)
 
     def refresh(self):
         # The UI always mirrors the saved state
@@ -83,25 +73,20 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         dialog.destroy()
         return answer == Gtk.ResponseType.YES
 
-    def on_click(self, _, action):
-        if action is actions.reset_all and not self.confirm("Reset everything, including the completed count?"):
+    def on_click(self, _, action, question):
+        if question and not self.confirm(question):
             return
         actions.apply(action)
         self.refresh()
 
     def on_settings(self, _):
+        old_durations = dict(config.DURATIONS)  # taken before the dialog reloads the config file
         dialog = SettingsDialog(self)
         if dialog.run() == Gtk.ResponseType.OK:
-            old_durations = dict(config.DURATIONS)
             config.save_config(dialog.values())
             actions.apply(actions.apply_durations, old_durations)
-            session["auto_start"] = config.AUTO_START
-            # self.auto_check.set_active(config.AUTO_START)
             self.refresh()
         dialog.destroy()
-
-    def on_auto_toggled(self, check):
-        session["auto_start"] = check.get_active()
 
     def on_key_press(self, _, event):
         if event.keyval == Gdk.KEY_Escape:
