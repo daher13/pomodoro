@@ -55,6 +55,7 @@ class SettingsDialog(Gtk.Dialog):
         self.add_button("Save", Gtk.ResponseType.OK)
         self.set_default_response(Gtk.ResponseType.OK)
 
+        config.load()  # re-read the config file so the form shows what is on disk
         self.fields = {}
         self.row = 0
         self.grid = Gtk.Grid(column_spacing=12, row_spacing=8, margin=15)

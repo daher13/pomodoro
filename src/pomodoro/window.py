@@ -18,7 +18,8 @@ BUTTONS = (
 class PomodoroWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title="Pomodoro", resizable=False)
-        self.set_default_size(380, 220)
+        # self.set_default_size(380, 220)
+        # self.set_default_size(380, 220)
         self.connect("key-press-event", self.on_key_press)
         self.connect("destroy", lambda _: actions.apply(actions.pause))
 
