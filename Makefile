@@ -8,7 +8,7 @@ build: $(BIN)
 
 $(BIN): $(SRC)
 	mkdir -p bin
-	python3 -m zipapp src -m "pomodoro.window:show_window" -p "/usr/bin/env python3" -o $(BIN)
+	python3 -m zipapp src -m "pomodoro.__main__:main" -p "/usr/bin/env python3" -o $(BIN)
 	chmod +x $(BIN)
 
 install: build

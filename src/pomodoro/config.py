@@ -3,10 +3,12 @@ import os
 from pathlib import Path
 
 CONFIG_FILE = Path.home() / ".config" / "pomodoro" / "pomodoro.conf"
-STATE_FILE = Path("/tmp/pomodoro.json")
 
-_parser = configparser.ConfigParser()
-_parser.read(CONFIG_FILE)
+_parser = configparser.ConfigParser(strict=False, interpolation=None)
+try:
+    _parser.read(CONFIG_FILE)
+except configparser.Error:
+    pass  # malformed file: keep the defaults
 
 def _get(section, key, default, cast=str):
     try:
@@ -14,25 +16,23 @@ def _get(section, key, default, cast=str):
     except (configparser.Error, ValueError):
         return default
 
+def _as_bool(value):
+    return value.strip().lower() in ("1", "true", "yes", "on")
 
-DURATIONS = {
-    phase: int(_get("durations", phase, default, float) * 60)
-    for phase, default in (("work", 25), ("short", 5), ("long", 15))
-}
+def _as_path(value):
+    return Path(value).expanduser()
 
-BEEPS = {
-    phase: _get("beeps", phase, default, int)
-    for phase, default in (("work", 1), ("short", 2), ("long", 3))
-}
+_DEFAULT_MINUTES = {"work": 25, "short": 5, "long": 15}
+_DEFAULT_BEEPS = {"work": 1, "short": 2, "long": 3}
+_DEFAULT_LABELS = {"work": "Focus", "short": "Short break", "long": "Long break"}
+_DEFAULT_STATE_FILE = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "pomodoro.json"
+_DEFAULT_SOUND = "/usr/share/sounds/freedesktop/stereo/message.oga"
+
+DURATIONS = {p: int(_get("durations", p, m, float) * 60) for p, m in _DEFAULT_MINUTES.items()}
+BEEPS = {p: _get("beeps", p, n, int) for p, n in _DEFAULT_BEEPS.items()}
+LABELS = {p: _get("labels", p, text) for p, text in _DEFAULT_LABELS.items()}
 
 CYCLES_BEFORE_LONG_BREAK = _get("timer", "cycles", 4, int)
-
-SOUND_FILE = _get("sound", "file", "/usr/share/sounds/freedesktop/stereo/message.oga")
-
-LABELS = {
-    phase: _get("labels", phase, default, str)
-    for phase, default in (("work", "Focus"), ("short", "Short break"), ("long", "Long break"))
-}
-
-DEFAULT_STATE_FILE = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "pomodoro.json"
-STATE_FILE = _get("state", "file", DEFAULT_STATE_FILE, lambda v: Path(v).expanduser())
+AUTO_START = _get("timer", "auto_start", False, _as_bool)
+SOUND_FILE = _get("sound", "file", _DEFAULT_SOUND)
+STATE_FILE = _get("state", "file", _DEFAULT_STATE_FILE, _as_path)
