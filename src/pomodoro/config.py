@@ -7,7 +7,8 @@ CONFIG_FILE = Path.home() / ".config" / "pomodoro" / "pomodoro.conf"
 _DEFAULT_MINUTES = {"work": 25, "short": 5, "long": 15}
 _DEFAULT_BEEPS = {"work": 1, "short": 2, "long": 3}
 _DEFAULT_LABELS = {"work": "Focus", "short": "Short break", "long": "Long break"}
-_DEFAULT_STATE_FILE = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "pomodoro.json"
+_CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+_DEFAULT_DATA_DIR = _CACHE / "pomodoro"
 _DEFAULT_SOUND = "/usr/share/sounds/freedesktop/stereo/message.oga"
 
 _parser = configparser.ConfigParser()
@@ -27,7 +28,8 @@ def _as_path(value):
 def load():
     # Other modules read these as config.X at call time, so reloading takes effect immediately
     global _parser, DURATIONS, BEEPS, LABELS
-    global CYCLES_BEFORE_LONG_BREAK, AUTO_START, SOUND_FILE, STATE_FILE
+    global CYCLES_BEFORE_LONG_BREAK, AUTO_START, SOUND_FILE
+    global DATA_DIR, STATE_FILE, HISTORY_FILE
 
     _parser = configparser.ConfigParser(strict=False, interpolation=None)
     try:
@@ -41,7 +43,9 @@ def load():
     CYCLES_BEFORE_LONG_BREAK = _get("timer", "cycles", 4, int)
     AUTO_START = _get("timer", "auto_start", False, _as_bool)
     SOUND_FILE = _get("sound", "file", _DEFAULT_SOUND)
-    STATE_FILE = _get("state", "file", _DEFAULT_STATE_FILE, _as_path)
+    DATA_DIR = _get("data", "dir", _DEFAULT_DATA_DIR, _as_path)
+    STATE_FILE = DATA_DIR / "state.json"
+    HISTORY_FILE = DATA_DIR / "history.json"
 
 def save_config(values):
     # values: {(section, key): text}; an empty text removes the key (back to the default)

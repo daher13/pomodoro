@@ -102,3 +102,10 @@ src/pomodoro/
 ## How it works
 
 The state (phase, end timestamp, completed count) lives in the state file (see Configuration). While running, the remaining time is computed from the end timestamp, so it stays correct even if the window is busy. The window refreshes every second and, when the timer reaches zero, advances to the next phase, plays the beep and sends a notification. There is no background process: the timer only counts while the window is open.
+
+## Testing light theme
+
+```
+cd src
+GTK_THEME=Adwaita:light PYTHONPATH=src python -m pomodoro
+```

@@ -1,6 +1,7 @@
 from gi.repository import Gdk, GLib, Gtk
 
 from . import actions, config
+from .report import ReportDialog
 from .settings import SettingsDialog
 from .status import current_status
 
@@ -20,6 +21,19 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.connect("key-press-event", self.on_key_press)
         self.connect("destroy", lambda _: actions.apply(actions.pause))
 
+        css = Gtk.CssProvider()
+        css.load_from_data(b"""
+        window:backdrop,
+        window:backdrop * {
+            color: @theme_fg_color;
+            opacity: 1;
+            text-shadow: none;
+            -gtk-icon-effect: none;
+        }
+        """)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
         self.build_ui()
         self.refresh()
         GLib.timeout_add_seconds(1, self.on_tick)
@@ -32,13 +46,15 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin=15)
         overlay.add(box)
 
-        settings = Gtk.Button.new_from_icon_name("preferences-system-symbolic", Gtk.IconSize.BUTTON)
-        settings.set_relief(Gtk.ReliefStyle.NONE)
-        settings.set_tooltip_text("Settings")
-        settings.set_halign(Gtk.Align.END)
-        settings.set_valign(Gtk.Align.START)
-        settings.connect("clicked", self.on_settings)
-        overlay.add_overlay(settings)
+        tools = Gtk.Box(spacing=2, halign=Gtk.Align.END, valign=Gtk.Align.START)
+        for icon, tip, handler in (("dialog-information-symbolic", "Report", self.on_report),
+                                   ("preferences-system-symbolic", "Settings", self.on_settings)):
+            button = Gtk.Button.new_from_icon_name(icon, Gtk.IconSize.BUTTON)
+            button.set_relief(Gtk.ReliefStyle.NONE)
+            button.set_tooltip_text(tip)
+            button.connect("clicked", handler)
+            tools.pack_start(button, False, False, 0)
+        overlay.add_overlay(tools)
 
         self.phase_label = Gtk.Label()
         self.time_label = Gtk.Label()
@@ -64,7 +80,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         state_color = "#4caf7d" if status["running"] else "#e0a030"
         self.phase_label.set_markup(f'<span size="large" weight="bold" foreground="{color}">{config.LABELS[status["phase"]]}</span>')
         self.time_label.set_markup(f'<span font="monospace 40" foreground="{color}" alpha="{alpha}">{minutes:02d}:{seconds:02d}</span>')
-        self.info_label.set_markup(f'<span foreground="{state_color}">{state_text}</span> | Completed: {status["done"]}')
+        self.info_label.set_markup(f'<span foreground="{state_color}">{state_text}</span> | Completed today: {status["done"]}')
 
     def confirm(self, text):
         dialog = Gtk.MessageDialog(
@@ -83,6 +99,11 @@ class PomodoroWindow(Gtk.ApplicationWindow):
             return
         actions.apply(action)
         self.refresh()
+
+    def on_report(self, _):
+        dialog = ReportDialog(self)
+        dialog.run()
+        dialog.destroy()
 
     def on_settings(self, _):
         old_durations = dict(config.DURATIONS)  # taken before the dialog reloads the config file

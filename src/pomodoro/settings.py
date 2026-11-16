@@ -40,6 +40,8 @@ class FileField(Gtk.Box):
         path = Path(self.entry.get_text().strip() or "~").expanduser()
         if path.is_file():
             chooser.set_filename(str(path))
+        elif path.is_dir():
+            chooser.set_current_folder(str(path))
         elif path.parent.is_dir():
             chooser.set_current_folder(str(path.parent))
             if saving:
@@ -85,8 +87,8 @@ class SettingsDialog(Gtk.Dialog):
         self.add_heading("Files")
         sound = FileField(self, config.SOUND_FILE, Gtk.FileChooserAction.OPEN, "Select sound")
         self.add_field("Sound", sound, "sound", "file", _text)
-        state = FileField(self, str(config.STATE_FILE), Gtk.FileChooserAction.SAVE, "Select state file")
-        self.add_field("State", state, "state", "file", _text)
+        data = FileField(self, str(config.DATA_DIR), Gtk.FileChooserAction.SELECT_FOLDER, "Select data folder")
+        self.add_field("Data folder", data, "data", "dir", _text)
 
     def add_heading(self, text):
         label = Gtk.Label(halign=Gtk.Align.START, margin_top=6)
