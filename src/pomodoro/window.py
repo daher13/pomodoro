@@ -12,6 +12,8 @@ BUTTONS = (
     ("Reset All", actions.reset_all, "Reset everything, including the completed count?"),
 )
 
+PHASE_COLORS = {"work": "#e05555", "short": "#4caf7d", "long": "#4a90d9"}
+
 class PomodoroWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title="Pomodoro", resizable=False)
@@ -56,10 +58,13 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         # The UI always mirrors the saved state
         status = current_status()
         minutes, seconds = divmod(status["left"], 60)
+        color = PHASE_COLORS[status["phase"]]
+        alpha = "100%" if status["running"] else "55%"
         state_text = "Running" if status["running"] else "Paused"
-        self.phase_label.set_markup(f'<span size="large" weight="bold">{config.LABELS[status["phase"]]}</span>')
-        self.time_label.set_markup(f'<span font="monospace 40">{minutes:02d}:{seconds:02d}</span>')
-        self.info_label.set_text(f'{state_text} | Completed: {status["done"]}')
+        state_color = "#4caf7d" if status["running"] else "#e0a030"
+        self.phase_label.set_markup(f'<span size="large" weight="bold" foreground="{color}">{config.LABELS[status["phase"]]}</span>')
+        self.time_label.set_markup(f'<span font="monospace 40" foreground="{color}" alpha="{alpha}">{minutes:02d}:{seconds:02d}</span>')
+        self.info_label.set_markup(f'<span foreground="{state_color}">{state_text}</span> | Completed: {status["done"]}')
 
     def confirm(self, text):
         dialog = Gtk.MessageDialog(
