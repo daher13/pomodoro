@@ -18,7 +18,9 @@ BUTTONS = (
 
 PHASE_COLORS = {"work": "#e05555", "short": "#4caf7d", "long": "#4a90d9"}
 
-RING_COLORS = ["#e05555", "#e0c030", "#4caf7d", "#4a90d9"]
+RING_COLORS = ["#e05555", "#e08a3c", "#e0c030", "#4caf7d", "#4a90d9"]
+
+RING_STEPS = 4  # number of distinct colors in the ring
 
 class PomodoroWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
@@ -103,12 +105,24 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         lit = math.ceil(n * fraction)
         gap = min(0.05, math.tau / n * 0.2)  # keep the gap small for long phases
         parts = []
+        # clockwise
         for i in range(lit):
+        # for i in range(n - lit, n): # counter clockwise
             a0 = math.tau * i / n - math.pi / 2 + gap
             a1 = math.tau * (i + 1) / n - math.pi / 2 - gap
-            r, g, b = colorsys.hsv_to_rgb(0.58 * i / max(1, n - 1), 0.75, 0.95)
+
+            # using gradient colors
+            # r, g, b = colorsys.hsv_to_rgb(0.58 * i / max(1, n - 1), 0.75, 0.95)
             # segment_color = f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
+            
+            # using colors according RING STEPS
+            # step = i * RING_STEPS // n  # 0..RING_STEPS-1, same value for neighboring segments
+            # r, g, b = colorsys.hsv_to_rgb(0.58 * step / max(1, RING_STEPS - 1), 0.75, 0.95)
+            # segment_color = f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
+
+            # using fixed RING_COLORS
             segment_color = RING_COLORS[i * len(RING_COLORS) // n]
+            
             parts.append(
                 f'<path d="M{50 + 46 * math.cos(a0):.2f} {50 + 46 * math.sin(a0):.2f} '
                 f'A46 46 0 0 1 {50 + 46 * math.cos(a1):.2f} {50 + 46 * math.sin(a1):.2f}" '
