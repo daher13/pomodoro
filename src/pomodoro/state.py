@@ -43,6 +43,27 @@ def record_pomodoro():
     history[today()] = history.get(today(), 0) + 1
     _write_json(config.HISTORY_FILE, history)
 
+def unrecord_pomodoro():
+    # Inverse of record_pomodoro: used when stepping back from a break to focus
+    history = load_history()
+    count = history.get(today(), 0) - 1
+    if count > 0:
+        history[today()] = count
+    else:
+        history.pop(today(), None)
+    _write_json(config.HISTORY_FILE, history)
+
+def retreat(state):
+    if state["phase"] == "work":
+        long_break = state["done"] > 0 and state["done"] % config.CYCLES_BEFORE_LONG_BREAK == 0
+        state["phase"] = "long" if long_break else "short"
+    else:
+        state["phase"] = "work"
+        if state["done"] > 0:
+            state["done"] -= 1
+            unrecord_pomodoro()
+    state.update(running=False, left=config.DURATIONS[state["phase"]])
+
 def remaining(state):
     if state["running"]:
         return max(0, int(state["end"] - time.time()))

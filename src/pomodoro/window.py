@@ -1,4 +1,7 @@
-from gi.repository import Gdk, GLib, Gtk
+import colorsys
+import math
+
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
 from . import actions, config
 from .report import ReportDialog
@@ -8,12 +11,14 @@ from .status import current_status
 # (label, action, confirmation question or None)
 BUTTONS = (
     ("Start/Pause", actions.toggle, None),
+    ("Prev", actions.prev, None),
+    ("Next", actions.skip, None),
     ("Reset", actions.reset, None),
-    ("Skip", actions.skip, None),
-    ("Reset All", actions.reset_all, "Reset everything, including the completed count?"),
 )
 
 PHASE_COLORS = {"work": "#e05555", "short": "#4caf7d", "long": "#4a90d9"}
+
+RING_COLORS = ["#e05555", "#e0c030", "#4caf7d", "#4a90d9"]
 
 class PomodoroWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
@@ -60,7 +65,14 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.time_label = Gtk.Label()
         self.info_label = Gtk.Label()
         box.pack_start(self.phase_label, False, False, 0)
-        box.pack_start(self.time_label, True, True, 0)
+
+        # Segmented ring with the time centered over it
+        self.ring = Gtk.Image()
+        dial = Gtk.Overlay()
+        dial.add(self.ring)
+        dial.add_overlay(self.time_label)
+        box.pack_start(dial, True, True, 0)
+
         box.pack_start(self.info_label, False, False, 0)
 
         row = Gtk.Box(spacing=6, halign=Gtk.Align.CENTER)
@@ -81,6 +93,33 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.phase_label.set_markup(f'<span size="large" weight="bold" foreground="{color}">{config.LABELS[status["phase"]]}</span>')
         self.time_label.set_markup(f'<span font="monospace 40" foreground="{color}" alpha="{alpha}">{minutes:02d}:{seconds:02d}</span>')
         self.info_label.set_markup(f'<span foreground="{state_color}">{state_text}</span> | Completed today: {status["done"]}')
+
+        total = config.DURATIONS[status["phase"]]
+        fraction = status["left"] / total if total else 0.0
+        self.ring.set_from_pixbuf(self.ring_pixbuf(fraction, max(1, total // 60)))
+
+    def ring_pixbuf(self, fraction, n, size=240):
+        # One segment per minute of the phase; lit ones = minutes left (rounded up)
+        lit = math.ceil(n * fraction)
+        gap = min(0.05, math.tau / n * 0.2)  # keep the gap small for long phases
+        parts = []
+        for i in range(lit):
+            a0 = math.tau * i / n - math.pi / 2 + gap
+            a1 = math.tau * (i + 1) / n - math.pi / 2 - gap
+            r, g, b = colorsys.hsv_to_rgb(0.58 * i / max(1, n - 1), 0.75, 0.95)
+            # segment_color = f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
+            segment_color = RING_COLORS[i * len(RING_COLORS) // n]
+            parts.append(
+                f'<path d="M{50 + 46 * math.cos(a0):.2f} {50 + 46 * math.sin(a0):.2f} '
+                f'A46 46 0 0 1 {50 + 46 * math.cos(a1):.2f} {50 + 46 * math.sin(a1):.2f}" '
+                f'stroke="{segment_color}"/>')
+
+        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 100 100">'
+               f'<g fill="none" stroke-width="6">{"".join(parts)}</g></svg>')
+        loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
+        loader.write(svg.encode())
+        loader.close()
+        return loader.get_pixbuf()
 
     def confirm(self, text):
         dialog = Gtk.MessageDialog(

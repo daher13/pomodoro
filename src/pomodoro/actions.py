@@ -1,5 +1,8 @@
 from . import config
-from .state import advance, load_state, new_state, remaining, save_state, start
+from .state import advance, load_state, new_state, remaining, retreat, save_state, start
+
+skip = advance
+prev = retreat
 
 # Every action receives the loaded state and mutates it; apply() loads and saves around it.
 def apply(action, *args):
