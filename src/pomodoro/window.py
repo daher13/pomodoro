@@ -63,6 +63,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
 
         # Segmented ring with the time centered over it
         self.ring = Gtk.Image()
+        self.ring.set_size_request(240, 240)  # keeps the dial area even when the ring is hidden
         dial = Gtk.Overlay()
         dial.add(self.ring)
 
@@ -108,11 +109,10 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         if config.SHOW_RING:
             total = config.DURATIONS[status["phase"]]
             fraction = status["left"] / total if total else 0.0
-            self.ring.set_size_request(-1, -1)
             self.ring.set_from_pixbuf(self.ring_pixbuf(fraction, max(1, total // 60)))
         else:
             self.ring.clear()
-            self.ring.set_size_request(-1, 70)  # keeps room for the centered time
+
         icon = "media-playback-pause-symbolic" if status["running"] else "media-playback-start-symbolic"
         self.toggle_button.set_image(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.BUTTON))
 
