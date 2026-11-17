@@ -1,0 +1,22 @@
+window:backdrop,
+window:backdrop * {
+    color: @theme_fg_color;
+    opacity: 1;
+    text-shadow: none;
+    -gtk-icon-effect: none;
+}
+
+window button.dim,
+window button.dim image {
+    color: alpha(@theme_fg_color, 0.7);
+}
+
+window button.dim:hover,
+window button.dim:hover image {
+    color: @theme_fg_color;
+}
+
+window:backdrop button.dim,
+window:backdrop button.dim image {
+    color: alpha(@theme_fg_color, 0.7);
+}

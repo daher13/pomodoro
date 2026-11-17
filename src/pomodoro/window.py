@@ -8,6 +8,8 @@ from .report import ReportDialog
 from .settings import SettingsDialog
 from .status import current_status
 
+from importlib.resources import files
+
 # (icon, tooltip, action)
 CONTROLS = (
     ("media-skip-backward-symbolic", "Prev", actions.prev),
@@ -28,15 +30,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.connect("destroy", lambda _: actions.apply(actions.pause))
 
         css = Gtk.CssProvider()
-        css.load_from_data(b"""
-        window:backdrop,
-        window:backdrop * {
-            color: @theme_fg_color;
-            opacity: 1;
-            text-shadow: none;
-            -gtk-icon-effect: none;
-        }
-        """)
+        css.load_from_data(files("pomodoro").joinpath("style.css").read_bytes())
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
@@ -76,7 +70,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         reset = self.icon_button("view-refresh-symbolic", "Reset", actions.reset)
         reset.set_halign(Gtk.Align.CENTER)
         reset.set_valign(Gtk.Align.CENTER)
-        reset.set_margin_bottom(90)
+        reset.set_margin_bottom(135)
         dial.add_overlay(reset)
 
         self.time_label.set_halign(Gtk.Align.CENTER)
@@ -84,7 +78,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         dial.add_overlay(self.time_label)
 
         # Play/pause, prev, next below the time, inside the ring
-        controls = Gtk.Box(spacing=4, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, margin_top=90)
+        controls = Gtk.Box(spacing=4, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, margin_top=115)
         for icon, tip, action in CONTROLS:
             button = self.icon_button(icon, tip, action)
             if action is actions.toggle:
@@ -105,8 +99,10 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         alpha = "100%" if status["running"] else "55%"
         state_text = "Running" if status["running"] else "Paused"
         state_color = "#4caf7d" if status["running"] else "#e0a030"
+        # weight = "semibold" if status["running"] else "normal"
+        weight = "normal"
         self.phase_label.set_markup(f'<span size="large" weight="bold" foreground="{color}">{config.LABELS[status["phase"]]}</span>')
-        self.time_label.set_markup(f'<span font="monospace 40" foreground="{color}" alpha="{alpha}">{minutes:02d}:{seconds:02d}</span>')
+        self.time_label.set_markup(f'<span font="monospace 40" foreground="{color}" alpha="{alpha}" weight="{weight}">{minutes:02d}:{seconds:02d}</span>')
         self.info_label.set_markup(f'<span foreground="{state_color}">{state_text}</span> | Completed today: {status["done"]}')
 
         if config.SHOW_RING:
@@ -158,6 +154,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
     def icon_button(self, icon, tip, action):
         button = Gtk.Button.new_from_icon_name(icon, Gtk.IconSize.BUTTON)
         button.set_relief(Gtk.ReliefStyle.NONE)
+        button.get_style_context().add_class("dim")
         button.set_tooltip_text(tip)
         button.connect("clicked", self.on_click, action, None)
         return button
