@@ -76,6 +76,10 @@ class SettingsDialog(Gtk.Dialog):
         auto = Gtk.CheckButton(active=config.AUTO_START)
         self.add_field("Auto start next phase", auto, "timer", "auto_start", _checked)
 
+        self.add_heading("Display")
+        ring = Gtk.CheckButton(active=config.SHOW_RING)
+        self.add_field("Show ring", ring, "ui", "show_ring", _checked)
+
         self.add_heading("Beeps per phase")
         for phase, count in config.BEEPS.items():
             self.add_spin(config.LABELS[phase], "beeps", phase, count, 0, 10)

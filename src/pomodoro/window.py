@@ -96,9 +96,14 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.time_label.set_markup(f'<span font="monospace 40" foreground="{color}" alpha="{alpha}">{minutes:02d}:{seconds:02d}</span>')
         self.info_label.set_markup(f'<span foreground="{state_color}">{state_text}</span> | Completed today: {status["done"]}')
 
-        total = config.DURATIONS[status["phase"]]
-        fraction = status["left"] / total if total else 0.0
-        self.ring.set_from_pixbuf(self.ring_pixbuf(fraction, max(1, total // 60)))
+        if config.SHOW_RING:
+            total = config.DURATIONS[status["phase"]]
+            fraction = status["left"] / total if total else 0.0
+            self.ring.set_size_request(-1, -1)
+            self.ring.set_from_pixbuf(self.ring_pixbuf(fraction, max(1, total // 60)))
+        else:
+            self.ring.clear()
+            self.ring.set_size_request(-1, 70)  # keeps room for the centered time
 
     def ring_pixbuf(self, fraction, n, size=240):
         # One segment per minute of the phase; lit ones = minutes left (rounded up)

@@ -29,7 +29,7 @@ def _as_path(value):
 def load():
     # Other modules read these as config.X at call time, so reloading takes effect immediately
     global _parser, DURATIONS, BEEPS, LABELS
-    global CYCLES_BEFORE_LONG_BREAK, AUTO_START, SOUND_FILE
+    global CYCLES_BEFORE_LONG_BREAK, AUTO_START, SOUND_FILE, SHOW_RING
     global DATA_DIR, STATE_FILE, HISTORY_FILE
 
     _parser = configparser.ConfigParser(strict=False, interpolation=None)
@@ -47,6 +47,7 @@ def load():
     DATA_DIR = _get("data", "dir", _DEFAULT_DATA_DIR, _as_path)
     STATE_FILE = DATA_DIR / "state.json"
     HISTORY_FILE = DATA_DIR / "history.json"
+    SHOW_RING = _get("ui", "show_ring", True, _as_bool)
 
 def save_config(values):
     # values: {(section, key): text}; an empty text removes the key (back to the default)
