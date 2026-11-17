@@ -8,12 +8,11 @@ from .report import ReportDialog
 from .settings import SettingsDialog
 from .status import current_status
 
-# (label, action, confirmation question or None)
-BUTTONS = (
-    ("Start/Pause", actions.toggle, None),
-    ("Prev", actions.prev, None),
-    ("Next", actions.skip, None),
-    ("Reset", actions.reset, None),
+# (icon, tooltip, action)
+CONTROLS = (
+    ("media-skip-backward-symbolic", "Prev", actions.prev),
+    ("media-playback-start-symbolic", "Start/Pause", actions.toggle),
+    ("media-skip-forward-symbolic", "Next", actions.skip),
 )
 
 PHASE_COLORS = {"work": "#e05555", "short": "#4caf7d", "long": "#4a90d9"}
@@ -72,17 +71,31 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.ring = Gtk.Image()
         dial = Gtk.Overlay()
         dial.add(self.ring)
+
+        # Reset button above the time, inside the ring
+        reset = self.icon_button("view-refresh-symbolic", "Reset", actions.reset)
+        reset.set_halign(Gtk.Align.CENTER)
+        reset.set_valign(Gtk.Align.CENTER)
+        reset.set_margin_bottom(90)
+        dial.add_overlay(reset)
+
+        self.time_label.set_halign(Gtk.Align.CENTER)
+        self.time_label.set_valign(Gtk.Align.CENTER)
         dial.add_overlay(self.time_label)
+
+        # Play/pause, prev, next below the time, inside the ring
+        controls = Gtk.Box(spacing=4, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, margin_top=90)
+        for icon, tip, action in CONTROLS:
+            button = self.icon_button(icon, tip, action)
+            if action is actions.toggle:
+                self.toggle_button = button
+            controls.pack_start(button, False, False, 0)
+        dial.add_overlay(controls)
+
         box.pack_start(dial, True, True, 0)
 
         box.pack_start(self.info_label, False, False, 0)
-
-        row = Gtk.Box(spacing=6, halign=Gtk.Align.CENTER)
-        box.pack_start(row, False, False, 0)
-        for label, action, question in BUTTONS:
-            button = Gtk.Button(label=label)
-            button.connect("clicked", self.on_click, action, question)
-            row.pack_start(button, False, False, 0)
+        # (the old `row` / BUTTONS loop is removed)
 
     def refresh(self):
         # The UI always mirrors the saved state
@@ -104,6 +117,8 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         else:
             self.ring.clear()
             self.ring.set_size_request(-1, 70)  # keeps room for the centered time
+        icon = "media-playback-pause-symbolic" if status["running"] else "media-playback-start-symbolic"
+        self.toggle_button.set_image(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.BUTTON))
 
     def ring_pixbuf(self, fraction, n, size=240):
         # One segment per minute of the phase; lit ones = minutes left (rounded up)
@@ -139,6 +154,13 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         loader.write(svg.encode())
         loader.close()
         return loader.get_pixbuf()
+
+    def icon_button(self, icon, tip, action):
+        button = Gtk.Button.new_from_icon_name(icon, Gtk.IconSize.BUTTON)
+        button.set_relief(Gtk.ReliefStyle.NONE)
+        button.set_tooltip_text(tip)
+        button.connect("clicked", self.on_click, action, None)
+        return button
 
     def confirm(self, text):
         dialog = Gtk.MessageDialog(
