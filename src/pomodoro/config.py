@@ -6,7 +6,7 @@ CONFIG_FILE = Path.home() / ".config" / "pomodoro" / "pomodoro.conf"
 
 _DEFAULT_MINUTES = {"work": 25, "short": 5, "long": 15}
 _DEFAULT_BEEPS = {"work": 1, "short": 2, "long": 3}
-_DEFAULT_LABELS = {"work": "Focus", "short": "Short break", "long": "Long break"}
+_DEFAULT_LABELS = {"work": "Focus Time", "short": "Short break", "long": "Long break"}
 # Replace the _CACHE and _DEFAULT_DATA_DIR lines with:
 _DATA_HOME = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
 _DEFAULT_DATA_DIR = _DATA_HOME / "pomodoro"

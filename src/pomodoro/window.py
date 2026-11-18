@@ -39,6 +39,9 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         GLib.timeout_add_seconds(1, self.on_tick)
         self.show_all()
 
+        # focus start button by default
+        Gtk.Widget.grab_focus(self.toggle_button)
+
     def build_ui(self):
         overlay = Gtk.Overlay()
         self.add(overlay)
@@ -48,7 +51,8 @@ class PomodoroWindow(Gtk.ApplicationWindow):
 
         tools = Gtk.Box(spacing=2, halign=Gtk.Align.END, valign=Gtk.Align.START)
         for icon, tip, handler in (("dialog-information-symbolic", "Report", self.on_report),
-                                   ("preferences-system-symbolic", "Settings", self.on_settings)):
+                           ("preferences-system-symbolic", "Settings", self.on_settings),
+                           ("help-about-symbolic", "About", self.on_about)):
             button = Gtk.Button.new_from_icon_name(icon, Gtk.IconSize.BUTTON)
             button.set_relief(Gtk.ReliefStyle.NONE)
             button.set_tooltip_text(tip)
@@ -61,6 +65,8 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.info_label = Gtk.Label()
         box.pack_start(self.phase_label, False, False, 0)
 
+        self.phase_label.set_halign(Gtk.Align.START)
+
         # Segmented ring with the time centered over it
         self.ring = Gtk.Image()
         self.ring.set_size_request(240, 240)  # keeps the dial area even when the ring is hidden
@@ -71,7 +77,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         reset = self.icon_button("view-refresh-symbolic", "Reset", actions.reset)
         reset.set_halign(Gtk.Align.CENTER)
         reset.set_valign(Gtk.Align.CENTER)
-        reset.set_margin_bottom(135)
+        reset.set_margin_bottom(115)
         dial.add_overlay(reset)
 
         self.time_label.set_halign(Gtk.Align.CENTER)
@@ -176,6 +182,18 @@ class PomodoroWindow(Gtk.ApplicationWindow):
             return
         actions.apply(action)
         self.refresh()
+    
+    def on_about(self, _):
+        dialog = Gtk.AboutDialog(transient_for=self, modal=True)
+        dialog.set_program_name("Pomodoro")
+        dialog.set_version("1.0")
+        dialog.set_comments("Simple Pomodoro timer built with GTK.")
+        dialog.set_authors(["Guilherme Daher"])
+        dialog.set_website("https://github.com/daher13/pomodoro")
+        dialog.set_website_label("GitHub")
+        dialog.set_license_type(Gtk.License.MIT_X11)
+        dialog.run()
+        dialog.destroy()
 
     def on_report(self, _):
         dialog = ReportDialog(self)
