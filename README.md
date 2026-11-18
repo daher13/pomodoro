@@ -17,6 +17,8 @@ Pomodoro timer with a GTK3 window. Single instance, configurable through a setti
 - Opening it again focuses the existing window instead of creating a new one
 - State and history persist across reboots
 
+![alt text](assets/settings.png)
+
 ## Requirements
 
 - Python 3.10+

@@ -187,7 +187,8 @@ class PomodoroWindow(Gtk.ApplicationWindow):
 
     def on_key_press(self, _, event):
         if event.keyval == Gdk.KEY_Escape:
-            self.close()
+            # self.close()
+            return True
 
     def on_tick(self):
         self.refresh()
