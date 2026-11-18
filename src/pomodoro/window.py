@@ -1,4 +1,3 @@
-import colorsys
 import math
 
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
@@ -21,7 +20,6 @@ PHASE_COLORS = {"work": "#e05555", "short": "#4caf7d", "long": "#4a90d9"}
 
 RING_COLORS = ["#e05555", "#e08a3c", "#e0c030", "#4caf7d", "#4a90d9"]
 
-RING_STEPS = 4  # number of distinct colors in the ring
 
 class PomodoroWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
@@ -51,8 +49,8 @@ class PomodoroWindow(Gtk.ApplicationWindow):
 
         tools = Gtk.Box(spacing=2, halign=Gtk.Align.END, valign=Gtk.Align.START)
         for icon, tip, handler in (("dialog-information-symbolic", "Report", self.on_report),
-                           ("preferences-system-symbolic", "Settings", self.on_settings),
-                           ("help-about-symbolic", "About", self.on_about)):
+                                   ("preferences-system-symbolic", "Settings", self.on_settings),
+                                   ("help-about-symbolic", "About", self.on_about)):
             button = Gtk.Button.new_from_icon_name(icon, Gtk.IconSize.BUTTON)
             button.set_relief(Gtk.ReliefStyle.NONE)
             button.set_tooltip_text(tip)
@@ -67,7 +65,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
 
         self.phase_label.set_halign(Gtk.Align.START)
 
-        # Segmented ring with the time centered over it
+        # Ring with the time centered over it
         self.ring = Gtk.Image()
         self.ring.set_size_request(240, 240)  # keeps the dial area even when the ring is hidden
         dial = Gtk.Overlay()
@@ -94,9 +92,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         dial.add_overlay(controls)
 
         box.pack_start(dial, True, True, 0)
-
         box.pack_start(self.info_label, False, False, 0)
-        # (the old `row` / BUTTONS loop is removed)
 
     def refresh(self):
         # The UI always mirrors the saved state
@@ -106,39 +102,32 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         alpha = "100%" if status["running"] else "55%"
         state_text = "Running" if status["running"] else "Paused"
         state_color = "#4caf7d" if status["running"] else "#e0a030"
-        # weight = "semibold" if status["running"] else "normal"
-        weight = "normal"
         self.phase_label.set_markup(f'<span size="large" weight="bold" foreground="{color}">{config.LABELS[status["phase"]]}</span>')
-        self.time_label.set_markup(f'<span font="monospace 40" foreground="{color}" alpha="{alpha}" weight="{weight}">{minutes:02d}:{seconds:02d}</span>')
+        self.time_label.set_markup(f'<span font="monospace 40" foreground="{color}" alpha="{alpha}">{minutes:02d}:{seconds:02d}</span>')
         self.info_label.set_markup(f'<span foreground="{state_color}">{state_text}</span> | Completed today: {status["done"]}')
 
         if config.SHOW_RING:
             total = config.DURATIONS[status["phase"]]
             fraction = status["left"] / total if total else 0.0
-            self.ring.set_from_pixbuf(self.ring_pixbuf(fraction, max(1, total // 60)))
+            self.ring.set_from_pixbuf(self.ring_pixbuf(fraction, color))
         else:
             self.ring.clear()
 
         icon = "media-playback-pause-symbolic" if status["running"] else "media-playback-start-symbolic"
         self.toggle_button.set_image(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.BUTTON))
 
-    def ring_pixbuf(self, fraction, n, size=240):
+    def ring_pixbuf(self, fraction, color, size=240):
         # Single arc that shrinks clockwise as time runs out
         parts = []
         if fraction > 0:
             end = -math.pi / 2 + math.tau * min(fraction, 0.9999)
-            x0, y0 = 50, 50 - 46  # start at the top
             x1, y1 = 50 + 46 * math.cos(end), 50 + 46 * math.sin(end)
-            large = 1 if fraction > 0.5 else 0
             parts.append(
-                f'<path d="M{x0} {y0} A46 46 0 {large} 1 {x1:.2f} {y1:.2f}" '
-                f'stroke="{RING_COLORS[min(int(fraction * len(RING_COLORS)), len(RING_COLORS) - 1)]}" '
-                f'stroke-linecap="round"/>')
-            color = RING_COLORS[min(int(fraction * len(RING_COLORS)), len(RING_COLORS) - 1)]
-            parts.append(f'<circle cx="{x1:.2f}" cy="{y1:.2f}" r="4" fill="{color}" stroke="none"/>')
+                f'<path d="M50 4 A46 46 0 {int(fraction > 0.5)} 1 {x1:.2f} {y1:.2f}" '
+                f'stroke="{color}" stroke-linecap="round"/>')
 
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 100 100">'
-            f'<g fill="none" stroke-width="3">{"".join(parts)}</g></svg>')
+               f'<g fill="none" stroke-width="3">{"".join(parts)}</g></svg>')
         loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
         loader.write(svg.encode())
         loader.close()
@@ -169,7 +158,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
             return
         actions.apply(action)
         self.refresh()
-    
+
     def on_about(self, _):
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("Pomodoro")
@@ -203,6 +192,7 @@ class PomodoroWindow(Gtk.ApplicationWindow):
     def on_tick(self):
         self.refresh()
         return True
+
 
 class PomodoroApp(Gtk.Application):
     def __init__(self):
