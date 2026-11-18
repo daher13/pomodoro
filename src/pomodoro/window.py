@@ -123,35 +123,22 @@ class PomodoroWindow(Gtk.ApplicationWindow):
         self.toggle_button.set_image(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.BUTTON))
 
     def ring_pixbuf(self, fraction, n, size=240):
-        # One segment per minute of the phase; lit ones = minutes left (rounded up)
-        lit = math.ceil(n * fraction)
-        gap = min(0.05, math.tau / n * 0.2)  # keep the gap small for long phases
+        # Single arc that shrinks clockwise as time runs out
         parts = []
-        # clockwise
-        for i in range(lit):
-        # for i in range(n - lit, n): # counter clockwise
-            a0 = math.tau * i / n - math.pi / 2 + gap
-            a1 = math.tau * (i + 1) / n - math.pi / 2 - gap
-
-            # using gradient colors
-            # r, g, b = colorsys.hsv_to_rgb(0.58 * i / max(1, n - 1), 0.75, 0.95)
-            # segment_color = f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
-            
-            # using colors according RING STEPS
-            # step = i * RING_STEPS // n  # 0..RING_STEPS-1, same value for neighboring segments
-            # r, g, b = colorsys.hsv_to_rgb(0.58 * step / max(1, RING_STEPS - 1), 0.75, 0.95)
-            # segment_color = f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
-
-            # using fixed RING_COLORS
-            segment_color = RING_COLORS[i * len(RING_COLORS) // n]
-            
+        if fraction > 0:
+            end = -math.pi / 2 + math.tau * min(fraction, 0.9999)
+            x0, y0 = 50, 50 - 46  # start at the top
+            x1, y1 = 50 + 46 * math.cos(end), 50 + 46 * math.sin(end)
+            large = 1 if fraction > 0.5 else 0
             parts.append(
-                f'<path d="M{50 + 46 * math.cos(a0):.2f} {50 + 46 * math.sin(a0):.2f} '
-                f'A46 46 0 0 1 {50 + 46 * math.cos(a1):.2f} {50 + 46 * math.sin(a1):.2f}" '
-                f'stroke="{segment_color}"/>')
+                f'<path d="M{x0} {y0} A46 46 0 {large} 1 {x1:.2f} {y1:.2f}" '
+                f'stroke="{RING_COLORS[min(int(fraction * len(RING_COLORS)), len(RING_COLORS) - 1)]}" '
+                f'stroke-linecap="round"/>')
+            color = RING_COLORS[min(int(fraction * len(RING_COLORS)), len(RING_COLORS) - 1)]
+            parts.append(f'<circle cx="{x1:.2f}" cy="{y1:.2f}" r="4" fill="{color}" stroke="none"/>')
 
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 100 100">'
-               f'<g fill="none" stroke-width="6">{"".join(parts)}</g></svg>')
+            f'<g fill="none" stroke-width="3">{"".join(parts)}</g></svg>')
         loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
         loader.write(svg.encode())
         loader.close()
